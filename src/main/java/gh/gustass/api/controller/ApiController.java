@@ -1,10 +1,10 @@
 package gh.gustass.api.controller;
 
-import gh.gustass.api.dto.TaskDTO;
+import gh.gustass.api.model.Task;
+import gh.gustass.api.repository.TaskRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,44 +12,44 @@ import java.util.Optional;
 @RequestMapping("/tasks")
 public class ApiController {
 
-    private final List<TaskDTO> tasks = new ArrayList<>();
-    private Long nextId = 1L;
+    private final TaskRepository taskRepository;
+
+    public ApiController(TaskRepository taskRepository) {
+        this.taskRepository = taskRepository;
+    }
 
     @GetMapping
-    public ResponseEntity<List<TaskDTO>> index() {
-        return ResponseEntity.ok(tasks);
+    public ResponseEntity<List<Task>> index() {
+        return ResponseEntity.ok(taskRepository.findAll());
     }
 
     @PostMapping
-    public ResponseEntity<TaskDTO> addTask(@RequestBody TaskDTO task) {
-        task.setId(nextId++);
-        tasks.add(task);
-
-        return ResponseEntity.ok(task);
+    public ResponseEntity<Task> addTask(@RequestBody Task task) {
+        Task savedTask = taskRepository.save(task);
+        return ResponseEntity.ok(savedTask);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TaskDTO> updateTask(
+    public ResponseEntity<Task> updateTask(
             @PathVariable Long id,
-            @RequestBody TaskDTO updatedTask
+            @RequestBody Task updatedTask
     ) {
-        Optional<TaskDTO> existingTask = tasks.stream()
-                .filter(task -> task.getId().equals(id))
-                .findFirst();
+        Optional<Task> existingTask = taskRepository.findById(id);
 
         if (existingTask.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        TaskDTO task = existingTask.get();
+        Task task = existingTask.get();
         task.setDescription(updatedTask.getDescription());
+        taskRepository.save(task);
 
         return ResponseEntity.ok(task);
     }
 
     @DeleteMapping
     public ResponseEntity<Void> clearTasks() {
-        tasks.clear();
+        taskRepository.deleteAll();
         return ResponseEntity.noContent().build();
     }
 }
